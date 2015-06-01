@@ -216,7 +216,7 @@ _OBJECT Object[MAX_OBJ];
 void _GameProc( int FullScreen )
 {
 	RECT	BackRect={0,0,640,480};
-	RECT	srcRect, dstRect;
+	RECT	srcRect, dstRect[2];
 	int		BaseY=350;
 
 	//Object로 옮길 것
@@ -243,15 +243,13 @@ void _GameProc( int FullScreen )
 	if (space == true){
 		if (checkTime == true){
 			//1번 계산만 필요한 것들
-			t1 = clock()/1000;
-			distant = sqrt((float)((MouseX - 50)*(MouseX - 50) + ((MouseY - 350)*(MouseY - 350))));
-			cosangle = (double)(MouseX - 50) / distant;
-			sinangle = (double)(350 - MouseY) / distant;
+			t1 = clock()/100;
+			distant = sqrt(pow((double)(MouseX - 50),2) + pow((double)(MouseY - 350), 2));
+			cosangle = (MouseX - 50) / distant;
+			sinangle = (360 - MouseY) / distant;
 			checkTime = false;
 		}
-		t2 = clock()/1000;
-		increaseX = (0.5 * cosangle * (t2-t1));		
-		increaseY = (0.5 * sinangle*(t2-t1) -0.5 * 9.8 * (t2 - t1)*(t2 - t1));
+		t2 = clock()/100;
 	}
 	
 	// Canon x= 10, 85, 150-220,   y=350, 410
@@ -268,34 +266,51 @@ void _GameProc( int FullScreen )
     srcRect.right = 255; 
     srcRect.bottom = 385; 
 	
-	dstRect.left = 50;
-	dstRect.top = 350;
-	dstRect.right = dstRect.left + 20;
-	dstRect.bottom = dstRect.top + 20;
 
-	dstRect.left += 50 + increaseX;
-	dstRect.top += 350 - increaseY;
+	dstRect[0].left = 120 + (int)(60 * cosangle * (t2 - t1))%640;
+	dstRect[0].top = 350 - (int)(60 * sinangle * (t2 - t1) - 0.5*9.8 * (t2 - t1)*(t2 - t1))%480;
+	dstRect[0].right = dstRect[0].left + 20;
+	dstRect[0].bottom = dstRect[0].top + 20;
+
+	if (dstRect[0].right >= 650 || dstRect[0].bottom >= 500)
+		space = false;
+	BackScreen->Blt(&dstRect[0], SpriteImage, &srcRect,  DDBLT_WAIT | DDBLT_KEYSRC, NULL);
 	
-	BackScreen->Blt(&dstRect, SpriteImage, &srcRect, DDBLTFAST_WAIT | DDBLT_WAIT | DDBLT_KEYSRC, NULL);
+	//충돌체 구현
+	if ((dstRect[1].left <= dstRect[0].right <= dstRect[1].right && dstRect[1].top <= dstRect[0].bottom <= dstRect[1].bottom) ||
+		(dstRect[1].left <= dstRect[0].left <= dstRect[1].right && dstRect[1].top <= dstRect[0].bottom <= dstRect[1].bottom)){
+
+		srcRect.left = 255;
+		srcRect.top = 350;
+		srcRect.right = 340;
+		srcRect.bottom = 410;
 	
+			
+	}
+	else{
+		// Hero x=0, 60    y=0,50
+		srcRect.left = 0;
+		srcRect.top = 0;
+		srcRect.right = 60;
+		srcRect.bottom = 50;
+	}
+
+		dstRect[1].left = 500 + speed;
+		dstRect[1].top = 350;
+		dstRect[1].right = dstRect[1].left + 60;
+		dstRect[1].bottom = dstRect[1].top + 50;
+
+		if (dstRect[1].left + speed > 550){ goRight = false; }
+
+		if (dstRect[1].left + speed < 300){ goRight = true; }
+
+		if (goRight){ speed += 2; }
+		else { speed += -2; }
 
 
-	// Hero x=0, 60    y=0,50
-	srcRect.left = 0; 
-    srcRect.top = 0; 
-    srcRect.right = 60; 
-    srcRect.bottom = 50; 
 
-	if (500 + speed > 500){	goRight = false; }	
-
-	if (500 + speed < 300){ goRight = true; }
-
-	if (goRight){ speed += 2; }	else { speed += -2; }
-		
-
+		BackScreen->Blt(&dstRect[1], SpriteImage, &srcRect, DDBLT_WAIT | DDBLT_KEYSRC, NULL);
 	
-	BackScreen->BltFast(500+speed, BaseY, SpriteImage, &srcRect, DDBLTFAST_WAIT | DDBLTFAST_SRCCOLORKEY);
-
 	/////////////////////////////////
 
 	if(FullScreen)
@@ -352,10 +367,10 @@ long FAR PASCAL WindowProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 					return 0;
 
 
-				case VK_SPACE:{
+				case VK_SPACE:
 								  space = true;
 								  checkTime = true;
-								  break; }
+								  break; 
 
 				case VK_CONTROL:
 					break;
@@ -391,7 +406,7 @@ int PASCAL WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 //        SndObjPlay( Sound[0], DSBPLAY_LOOPING );
     }
 
-	SetTimer(MainHwnd, 1, 20, NULL);
+	SetTimer(MainHwnd, 1, 10, NULL);
 
 
 	// Main message loop
