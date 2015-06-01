@@ -216,8 +216,10 @@ _OBJECT Object[MAX_OBJ];
 void _GameProc( int FullScreen )
 {
 	RECT	BackRect={0,0,640,480};
-	RECT	srcRect;
+	RECT	srcRect, dstRect;
 	int		BaseY=350;
+
+	//Object로 옮길 것
 	int MouseX1, MouseY1;
 	double  static distant;
 	double  static cosangle, sinangle;
@@ -226,9 +228,9 @@ void _GameProc( int FullScreen )
 	double static t2;
 	double  increaseX = 0;
 	double	increaseY = 0;
-	double static sumIncreaseX = 0;
-	double static sumIncreaseY = 0;
-	double static speed = 0;
+	int static speed = 0;
+
+	bool static goRight = true;
 	
 	
 	// Clear Back Ground
@@ -236,24 +238,21 @@ void _GameProc( int FullScreen )
 
 
 	//////////////////////////////
+
+	// Enter splite animation here
 	if (space == true){
-		speed += 2;
 		if (checkTime == true){
+			//1번 계산만 필요한 것들
 			t1 = clock()/1000;
-			MouseX1 = MouseX;
-			MouseY1 = MouseY;
-			distant = sqrt((float)((MouseX1 - 50)*(MouseX1 - 50) + ((MouseY1 - 350)*(MouseY1 - 350))));
-			cosangle = (double)(MouseX1 - 50) / distant;
-			sinangle = (double)(350 - MouseY1) / distant;
+			distant = sqrt((float)((MouseX - 50)*(MouseX - 50) + ((MouseY - 350)*(MouseY - 350))));
+			cosangle = (double)(MouseX - 50) / distant;
+			sinangle = (double)(350 - MouseY) / distant;
 			checkTime = false;
 		}
 		t2 = clock()/1000;
-		increaseX = (50 * cosangle * (speed));
-		sumIncreaseX += increaseX;		
-		increaseY = (350 - 350 * sinangle*(speed) + 0.5 * 9.8 * (speed)*(speed));
-		sumIncreaseY += increaseY;
+		increaseX = (0.5 * cosangle * (t2-t1));		
+		increaseY = (0.5 * sinangle*(t2-t1) -0.5 * 9.8 * (t2 - t1)*(t2 - t1));
 	}
-	// Enter splite animation here
 	
 	// Canon x= 10, 85, 150-220,   y=350, 410
 	srcRect.left = 10; 
@@ -269,14 +268,33 @@ void _GameProc( int FullScreen )
     srcRect.right = 255; 
     srcRect.bottom = 385; 
 	
-	BackScreen->BltFast(50+sumIncreaseX, BaseY+sumIncreaseY, SpriteImage, &srcRect, DDBLTFAST_WAIT | DDBLTFAST_SRCCOLORKEY);
+	dstRect.left = 50;
+	dstRect.top = 350;
+	dstRect.right = dstRect.left + 20;
+	dstRect.bottom = dstRect.top + 20;
+
+	dstRect.left += 50 + increaseX;
+	dstRect.top += 350 - increaseY;
+	
+	BackScreen->Blt(&dstRect, SpriteImage, &srcRect, DDBLTFAST_WAIT | DDBLT_WAIT | DDBLT_KEYSRC, NULL);
+	
+
 
 	// Hero x=0, 60    y=0,50
 	srcRect.left = 0; 
     srcRect.top = 0; 
     srcRect.right = 60; 
     srcRect.bottom = 50; 
-	BackScreen->BltFast(500, BaseY, SpriteImage, &srcRect, DDBLTFAST_WAIT | DDBLTFAST_SRCCOLORKEY);
+
+	if (500 + speed > 500){	goRight = false; }	
+
+	if (500 + speed < 300){ goRight = true; }
+
+	if (goRight){ speed += 2; }	else { speed += -2; }
+		
+
+	
+	BackScreen->BltFast(500+speed, BaseY, SpriteImage, &srcRect, DDBLTFAST_WAIT | DDBLTFAST_SRCCOLORKEY);
 
 	/////////////////////////////////
 
