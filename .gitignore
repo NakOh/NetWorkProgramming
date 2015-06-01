@@ -10,6 +10,8 @@
 *.user
 *.sln.docstates
 *.tlog
+*.idb
+*.sdf
 # Build results
 
 [Dd]ebug/
