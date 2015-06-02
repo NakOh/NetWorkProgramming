@@ -8,6 +8,7 @@
 #include "Packet.h"
 
 
+SOCKET socketConnect = INVALID_SOCKET;
 //**********************************************************************
 void usage(char *progname)
 {
@@ -145,11 +146,11 @@ int resolveAddr(int argc, char **argv, char *serverName, char *serverPort)
 	return 1;
 }
 //************************************************************************
-
+void CommRecv(char *recvData);
 
 DWORD WINAPI NetReceive(LPVOID socketConnect)
 {
-	char recvBuffer[127];
+	char recvBuffer[500];
 	int  RecvBytes;
 
 	Packet	recvPacket;
@@ -181,11 +182,13 @@ DWORD WINAPI NetReceive(LPVOID socketConnect)
 				recvPacket.readData(recvBuffer, recvPacket.getDataFieldSize() );
 				printf( "(%d Bytes, ID=%d) %s\n", recvPacket.getDataFieldSize(), recvPacket.id(), recvBuffer );
 
+				CommRecv(recvBuffer);
 				receivedPacketSize -= packetlength;
 				if( receivedPacketSize > 0 )
 				{
 					::CopyMemory( recvBuffer, ( receiveBuffer + recvPacket.getPacketSize() ), receivedPacketSize );
 					::CopyMemory( receiveBuffer, recvBuffer, receivedPacketSize );
+				
 				}
 			}
 			else{// if(recvPacket.id()==0){
@@ -204,12 +207,10 @@ DWORD WINAPI NetReceive(LPVOID socketConnect)
 	
 
 
-void CommMain(int argc, char **argv)
+void CommInit(int argc, char **argv)
 {
-	WSADATA wsaData;
-	SOCKET socketConnect=INVALID_SOCKET;
+	WSADATA wsaData;	
 	struct sockaddr_in serverAddr;
-	int  k;
 	HANDLE handleThread;
 
 
@@ -219,7 +220,7 @@ void CommMain(int argc, char **argv)
 	socketConnect = ::socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
 	if( socketConnect == INVALID_SOCKET )
 	{
-		printf( "Cannot create socket %d !!\n", k);
+		printf( "Cannot create socket %d !!\n");
 	}
 
 
@@ -242,7 +243,7 @@ void CommMain(int argc, char **argv)
 
 	if( socketConnect != INVALID_SOCKET){
 		if(::connect( socketConnect, ( struct sockaddr* )&serverAddr, sizeof( serverAddr ) ) == SOCKET_ERROR )	{
-			printf( "Cannot connect to server %d !!\n", k);
+			
 			socketConnect = INVALID_SOCKET;
 			exit(0);
 			}
@@ -252,41 +253,37 @@ void CommMain(int argc, char **argv)
 		}
 	}
 
-	Packet sendPacket;
-	char sendBuffer[127];
-	int sentBytes, count=0;
-
-	while(1){
-		printf("\n>> ");
-		gets(sendBuffer);
-
-		if(socketConnect != INVALID_SOCKET){
-			sendPacket.clear();
-			sendPacket.id(1000+count);
-			count++;
-			sendPacket.writeData( sendBuffer, strlen(sendBuffer)+1 );
-
-			sentBytes = ::send( socketConnect, sendPacket.getPacketBuffer(), sendPacket.getPacketSize(), 0 );
-
-			if(sentBytes<0){
-				::shutdown( socketConnect, SD_BOTH );
-				::closesocket( socketConnect);
-				socketConnect=INVALID_SOCKET;
-			}
-
-		Sleep(100);
-		}
-
-	}
-
-
-
-	::shutdown( socketConnect, SD_BOTH );
-	::closesocket( socketConnect);
-	::WSACleanup();
-
-	printf("Server Connection Closed !\n");
-	char temp[120];
-	gets(temp);
+	
 }
 
+extern int speed, notFocus, MouseX, MouseY;
+extern double distant, cosangle, sinangle, t1, t2;
+void CommSend()
+{
+	char sendBuffer[500];
+	Packet sendPacket;
+	int sentBytes;
+
+	if (socketConnect == INVALID_SOCKET)
+		return;
+	
+		sprintf(sendBuffer, "%d %f %f %f %f %f", &speed, &distant, &cosangle, &sinangle, &t1, &t2);
+		sendPacket.clear();
+		sendPacket.id(1001);
+		sendPacket.writeData(sendBuffer, strlen(sendBuffer) + 1);
+		sentBytes = ::send(socketConnect, sendPacket.getPacketBuffer(), sendPacket.getPacketSize(), 0);
+
+		if (sentBytes < 0){
+			::shutdown(socketConnect, SD_BOTH);
+			::closesocket(socketConnect);
+			socketConnect = INVALID_SOCKET;
+		}
+	
+}
+
+void CommRecv(char *recvData)
+{
+	if (notFocus == 0){
+		sscanf(recvData, "%d %f %f %f %f %f", &speed, &distant, &cosangle, &sinangle, &t1, &t2);
+	}
+}
