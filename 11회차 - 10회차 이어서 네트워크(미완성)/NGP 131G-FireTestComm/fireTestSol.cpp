@@ -88,7 +88,7 @@ void _ReleaseAll(void)
 		DirectOBJ = NULL;
 	}
 }
-
+	
 
 BOOL _GameMode(HINSTANCE hInstance, int nCmdShow, DWORD  x, DWORD  y, DWORD  bpp, int FullScreen)
 {

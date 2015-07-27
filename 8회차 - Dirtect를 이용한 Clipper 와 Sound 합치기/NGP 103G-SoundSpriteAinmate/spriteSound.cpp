@@ -269,16 +269,16 @@ int PASCAL WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
     DDSetColorKey( SpriteImage, RGB(0,0,0) );
 	
 		SetTimer(MainHwnd, 1, 10, _GameProc);
-	
-
-    while ( !_GetKeyState(VK_ESCAPE) )
-    {
+	    {
         if ( PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE) )
         {
             if ( !GetMessage(&msg, NULL, 0, 0) ) return msg.wParam;
 
-            TranslateMessage( &msg );
-            DispatchMessage( &msg );
+
+
+		 while ( !_GetKeyState(VK_ESCAPE) )
+		        TranslateMessage( &msg );
+          DispatchMessage( &msg );
         }
 		else
 		{
